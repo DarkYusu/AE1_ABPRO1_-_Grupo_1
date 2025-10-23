@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/main"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".MainActivity">
+
+    <!-- Contenedor principal horizontal para landscape -->
+    <androidx.constraintlayout.widget.Guideline
+        android:id="@+id/guideline_vertical"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintGuide_begin="0dp"
+        app:layout_constraintGuide_percent="0.35"
+        android:orientation="vertical" />
+
+    <!-- Columna izquierda: ingreso de datos y botón iniciar ambos -->
+    <LinearLayout
+        android:id="@+id/inputColumn"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/guideline_vertical"
+        android:layout_margin="16dp">
+
+        <TextView
+            android:id="@+id/timerLabel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Tiempo principal (mm:ss):"/>
+
+        <LinearLayout
+            android:id="@+id/timerInputRow"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+            <EditText
+                android:id="@+id/timerInput"
+                android:layout_width="100dp"
+                android:layout_height="wrap_content"
+                android:inputType="text"
+                android:text="01:00"/>
+            <Button
+                android:id="@+id/timerInputStartButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Iniciar"
+                android:visibility="gone"/>
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/bgTimerLabel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Tiempo fondo (mm:ss):"/>
+
+        <LinearLayout
+            android:id="@+id/bgTimerInputRow"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+            <EditText
+                android:id="@+id/bgTimerInput"
+                android:layout_width="100dp"
+                android:layout_height="wrap_content"
+                android:inputType="text"
+                android:text="01:00"/>
+            <Button
+                android:id="@+id/bgTimerInputStartButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Iniciar"
+                android:visibility="gone"/>
+        </LinearLayout>
+
+        <Button
+            android:id="@+id/startBothButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Iniciar ambos"
+            android:layout_marginTop="16dp"/>
+    </LinearLayout>
+
+    <!-- Columna derecha: temporizadores y botones -->
+    <LinearLayout
+        android:id="@+id/timersColumn"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toEndOf="@id/guideline_vertical"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:gravity="center">
+
+        <!-- Temporizador principal -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="center">
+            <TextView
+                android:id="@+id/timerTextView"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="00:00"
+                android:textSize="48sp"
+                android:layout_marginBottom="16dp"/>
+            <Button
+                android:id="@+id/startStopButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Iniciar"
+                android:layout_marginBottom="32dp"/>
+        </LinearLayout>
+
+        <!-- Espacio entre temporizadores -->
+        <Space
+            android:layout_width="32dp"
+            android:layout_height="wrap_content" />
+
+        <!-- Temporizador de fondo -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="center">
+            <TextView
+                android:id="@+id/bgTimerTextView"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="00:00"
+                android:textSize="36sp"
+                android:layout_marginBottom="16dp"/>
+            <Button
+                android:id="@+id/bgStartStopButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Iniciar fondo"/>
+        </LinearLayout>
+    </LinearLayout>
+
+</androidx.constraintlayout.widget.ConstraintLayout>
+
