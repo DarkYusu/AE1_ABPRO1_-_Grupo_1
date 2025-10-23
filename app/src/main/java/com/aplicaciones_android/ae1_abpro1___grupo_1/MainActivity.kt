@@ -1,6 +1,13 @@
 package com.aplicaciones_android.ae1_abpro1___grupo_1
 
+import android.Manifest
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
+import android.content.Intent
 import android.content.Context
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.view.View
@@ -11,11 +18,16 @@ import android.widget.TextView
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
+import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.Observer
 import android.text.Editable
 import android.text.TextWatcher
+import android.os.PowerManager
+import java.util.Locale
 
 class MainActivity : AppCompatActivity() {
     private val timerViewModel: TimerViewModel by viewModels()
@@ -28,6 +40,23 @@ class MainActivity : AppCompatActivity() {
     private lateinit var timerInputStartButton: Button
     private lateinit var bgTimerInputStartButton: Button
     private lateinit var startBothButton: Button
+
+    private val CHANNEL_ID = "timer_notifications"
+    private val NOTIF_ID_MAIN = 1
+    private val NOTIF_ID_BG = 2
+
+    private fun acquireWakeLock() {
+        val powerManager = getSystemService(PowerManager::class.java)
+        val wakeLock = powerManager.newWakeLock(
+            PowerManager.PARTIAL_WAKE_LOCK,
+            "AE1_ABPRO1::TimerWakeLock"
+        )
+        wakeLock.acquire(10 * 60 * 1000L /* 10 minutos */)
+    }
+
+    private fun releaseWakeLock() {
+        // Eliminado el parámetro wakeLock porque siempre es null
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -48,6 +77,21 @@ class MainActivity : AppCompatActivity() {
         timerInputStartButton = findViewById(R.id.timerInputStartButton)
         bgTimerInputStartButton = findViewById(R.id.bgTimerInputStartButton)
         startBothButton = findViewById(R.id.startBothButton)
+
+        createNotificationChannel()
+        // Solicitar permiso de notificaciones si es Android 13+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 1001)
+            }
+        }
+        // Observar eventos de finalización de temporizadores
+        timerViewModel.timerFinishedEvent.observe(this, Observer<String> { msg ->
+            showNotification(msg, NOTIF_ID_MAIN)
+        })
+        timerViewModel.bgTimerFinishedEvent.observe(this, Observer<String> { msg ->
+            showNotification(msg, NOTIF_ID_BG)
+        })
 
         timerViewModel.timeLeft.observe(this, Observer { seconds ->
             timerTextView.text = formatSecondsToMMSS(seconds)
@@ -149,6 +193,7 @@ class MainActivity : AppCompatActivity() {
             imm.hideSoftInputFromWindow(timerInput.windowToken, 0)
             imm.hideSoftInputFromWindow(bgTimerInput.windowToken, 0)
         }
+        acquireWakeLock()
     }
 
     private fun parseTimeInput(input: String): Long? {
@@ -171,11 +216,76 @@ class MainActivity : AppCompatActivity() {
     private fun formatSecondsToMMSS(seconds: Long): String {
         val m = seconds / 60
         val s = seconds % 60
-        return String.format("%02d:%02d", m, s)
+        return String.format(Locale.getDefault(), "%02d:%02d", m, s)
+    }
+
+    private fun createNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val name = "Notificaciones de temporizador"
+            val descriptionText = "Avisos cuando un temporizador finaliza"
+            val importance = NotificationManager.IMPORTANCE_HIGH // heads-up
+            val channel = NotificationChannel(CHANNEL_ID, name, importance).apply {
+                description = descriptionText
+            }
+            val notificationManager: NotificationManager = getSystemService(NotificationManager::class.java)
+            val existingChannel = notificationManager.getNotificationChannel(CHANNEL_ID)
+            if (existingChannel != null) {
+                if (existingChannel.importance != NotificationManager.IMPORTANCE_HIGH) {
+                    Log.d("MainActivity", "El canal existente no tiene la importancia correcta. Se recreará.")
+                    notificationManager.deleteNotificationChannel(CHANNEL_ID)
+                    notificationManager.createNotificationChannel(channel)
+                } else {
+                    Log.d("MainActivity", "El canal existente tiene la importancia correcta.")
+                }
+            } else {
+                Log.d("MainActivity", "Creando un nuevo canal de notificaciones.")
+                notificationManager.createNotificationChannel(channel)
+            }
+        }
+    }
+
+    private fun showNotification(message: String, notifId: Int) {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+            Log.w("MainActivity", "Permiso de notificaciones no otorgado. No se puede mostrar la notificación.")
+            return
+        }
+
+        val intent = Intent(this, MainActivity::class.java)
+        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        val pendingIntent = PendingIntent.getActivity(
+            this, 0, intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val builder = NotificationCompat.Builder(this, CHANNEL_ID)
+            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setContentTitle("Temporizador Finalizado")
+            .setContentText(message)
+            .setPriority(NotificationCompat.PRIORITY_MAX) // Asegurar heads-up
+            .setCategory(NotificationCompat.CATEGORY_ALARM) // Categoría de alarma para forzar heads-up
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC) // Asegurar visibilidad pública
+            .setDefaults(NotificationCompat.DEFAULT_ALL) // Sonido, vibración y luz
+            .setAutoCancel(true)
+            .setContentIntent(pendingIntent)
+            .setFullScreenIntent(pendingIntent, true) // Forzar heads-up notification
+
+        Log.d("MainActivity", "Mostrando notificación con ID: $notifId y mensaje: $message")
+        Log.d("MainActivity", "Permisos de notificación otorgados: ${ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED}")
+        Log.d("MainActivity", "Configuración del canal: ${NotificationManagerCompat.from(this).areNotificationsEnabled()}")
+
+        try {
+            with(NotificationManagerCompat.from(this)) {
+                notify(notifId, builder.build())
+            }
+        } catch (e: SecurityException) {
+            Log.e("MainActivity", "Error al mostrar la notificación: ${e.message}")
+        }
     }
 
     override fun onDestroy() {
         super.onDestroy()
+        // Liberar el WakeLock al destruir la actividad
+        releaseWakeLock()
         Log.d("CICLO_VIDA", "onDestroy ejecutado")
     }
     override fun onStart() {
@@ -188,6 +298,7 @@ class MainActivity : AppCompatActivity() {
         Log.d("CICLO_VIDA", "onResume ejecutado")
         timerViewModel.resumeTimer()
         timerViewModel.updateBgTimerOnResume()
+
     }
 
     override fun onPause() {

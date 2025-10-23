@@ -4,6 +4,7 @@ import android.os.CountDownTimer
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import com.aplicaciones_android.ae1_abpro1___grupo_1.SingleLiveEvent
 
 class TimerViewModel : ViewModel() {
     private val _timeLeft = MutableLiveData<Long>()
@@ -24,6 +25,10 @@ class TimerViewModel : ViewModel() {
     private var bgEndTime: Long = 0L
     private var bgTicker: CountDownTimer? = null
 
+    // Eventos para notificaciones
+    val timerFinishedEvent = SingleLiveEvent<String>()
+    val bgTimerFinishedEvent = SingleLiveEvent<String>()
+
     fun startTimer() {
         if (_isRunning.value == true) return
         _isRunning.value = true
@@ -35,6 +40,7 @@ class TimerViewModel : ViewModel() {
             override fun onFinish() {
                 _isRunning.value = false
                 _timeLeft.value = 0
+                timerFinishedEvent.value = "Temporizador principal finalizado"
             }
         }.start()
     }
@@ -91,6 +97,7 @@ class TimerViewModel : ViewModel() {
             override fun onFinish() {
                 _bgTimeLeft.value = 0
                 _bgIsRunning.value = false
+                bgTimerFinishedEvent.value = "Temporizador de fondo finalizado"
             }
         }.start()
     }
